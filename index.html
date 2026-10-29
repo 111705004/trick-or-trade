@@ -330,7 +330,7 @@ function Engine(room,onSync){
 
   function pubView(){
     const ids=S.order.length?S.order:listed(),d=demand();
-    const fillPx={};if(S.alloc)S.alloc.steps.slice(0,S.matchShown).forEach(s=>{if(s.type!=='freeze')fillPx[s.g]=s.a||0});
+    const fillPx={};if(S.alloc)S.alloc.steps.slice(0,S.matchShown).forEach(s=>{fillPx[s.g]=s.a||0});
     const pv={room:S.room,phase:S.phase,now:Date.now(),
       players:Object.keys(S.players).filter(id=>S.players[id].tk).sort((a,b)=>S.players[a].at-S.players[b].at).map(id=>({name:S.players[id].name,ready:!!S.ready[id],on:online.has(id)})),
       startAt:S.startAt,rsIdx:S.rsIdx,rsEndsAt:S.rsEndsAt,bookEndsAt:S.bookEndsAt,
@@ -338,7 +338,7 @@ function Engine(room,onSync){
       qa:S.qa.map(x=>({id:x.id,tk:tkOf(x.g),q:x.q,a:x.a})),
       lockedN:Object.keys(S.locked).length,traders:S.order.length};
     if(S.alloc){
-      pv.match=S.alloc.steps.slice(0,S.matchShown).map(s=>({type:s.type,who:nm(s.b),tk:tkOf(s.g),a:s.a||0,tie:!!s.tie,others:(s.others||[]).map(o=>({who:nm(o.b),a:o.a}))}));
+      pv.match=S.alloc.steps.slice(0,S.matchShown).map(s=>({type:s.type,who:nm(s.b),tk:tkOf(s.g),a:s.a||0,tie:!!s.tie,want:s.want?tkOf(s.want):null,wantA:s.wantA||0,other:s.other?nm(s.other):null,others:(s.others||[]).map(o=>({who:nm(o.b),a:o.a}))}));
       pv.matchTotal=S.alloc.steps.length;
       pv.people=S.order.slice().sort((a,b)=>S.players[a].at-S.players[b].at).map(nm);
       pv.tickers=S.order.map(tkOf);
@@ -353,7 +353,7 @@ function Engine(room,onSync){
       ordersTk:Object.fromEntries(Object.entries(S.orders[pid]||{}).map(([g,v])=>[tkOf(g),v])),
       myQs:S.qa.filter(x=>x.g===pid).map(x=>({id:x.id,q:x.q,a:x.a}))};
     if(S.alloc){
-      const r=S.alloc.result.find(x=>x.b===pid),seen=S.alloc.steps.slice(0,S.matchShown).some(s=>s.type!=='freeze'&&s.b===pid);
+      const r=S.alloc.result.find(x=>x.b===pid),seen=S.alloc.steps.slice(0,S.matchShown).some(s=>s.b===pid);
       if(r&&(seen||S.phase==='reveal'||S.phase==='done'))me.got={tk:tkOf(r.g),tags:S.players[r.g].tags,a:r.a||0};
       const sh=S.alloc.result.slice(0,S.revealShown);const a=sh.find(x=>x.b===pid);if(a)me.from=nm(a.g);const b=sh.find(x=>x.g===pid);if(b)me.gaveTo=nm(b.b);
     }
@@ -365,7 +365,7 @@ function Engine(room,onSync){
   function nextStock(){S.rsIdx++;if(S.rsIdx>=S.order.length){S.phase='book';S.bookEndsAt=Date.now()+BOOK_MS;sfx.gong()}else{S.rsEndsAt=Date.now()+RS_MS;sfx.bell()}sync()}
   function closeBook(){S.alloc=allocate();S.matchShown=0;S.phase='match';S.nextAt=Date.now()+INTRO_MS;sfx.gong();sync()}
   function matchNext(){
-    if(S.matchShown<S.alloc.steps.length){S.matchShown++;S.alloc.steps[S.matchShown-1].type==='freeze'?sfx.boo():sfx.string();S.nextAt=Date.now()+MATCH_MS}
+    if(S.matchShown<S.alloc.steps.length){S.matchShown++;S.alloc.steps[S.matchShown-1].type==='ghost'?sfx.boo():sfx.string();S.nextAt=Date.now()+MATCH_MS}
     else{S.phase='reveal';S.revealShown=0;S.nextAt=Date.now()+INTRO_MS;sfx.gong()}
     sync();
   }
@@ -383,14 +383,18 @@ function Engine(room,onSync){
     for(const o of all){
       if(tB.has(o.b)||tG.has(o.g))continue;
       const remB=ids.filter(x=>!tB.has(x)&&x!==o.b),remG=ids.filter(x=>!tG.has(x)&&x!==o.g);
-      if(remB.length===1&&remB[0]===remG[0]){steps.push({type:'freeze',b:o.b,g:o.g,a:o.a});continue}
+      if(remB.length===1&&remB[0]===remG[0]){
+        // Only two traders are left and this fill would leave the other one holding their own gift.
+        // The only valid outcome: this trader takes the other one's gift. A ghost drags the string over.
+        const y=remB[0];tB.add(o.b);tG.add(y);
+        steps.push({type:'ghost',b:o.b,g:y,want:o.g,wantA:o.a,a:(S.orders[o.b]||{})[y]||0,other:y});continue}
       const tie=all.some(p=>p!==o&&p.g===o.g&&p.a===o.a&&!tB.has(p.b));
       tB.add(o.b);tG.add(o.g);
       steps.push({type:'fill',b:o.b,g:o.g,a:o.a,tie,others:all.filter(p=>p.g===o.g&&p.b!==o.b).map(p=>({b:p.b,a:p.a}))});
     }
     const remB=ids.filter(x=>!tB.has(x)),remG=ids.filter(x=>!tG.has(x)),m=matchNoSelf(remB,remG);
-    remB.forEach((b,i)=>steps.push({type:'left',b,g:m[i],a:0}));
-    return{steps,result:steps.filter(s=>s.type!=='freeze').map(s=>({b:s.b,g:s.g,a:s.a||0}))};
+    remB.forEach((b,i)=>steps.push({type:'auto',b,g:m[i],a:0}));
+    return{steps,result:steps.map(s=>({b:s.b,g:s.g,a:s.a||0}))};
   }
   function matchNoSelf(B,G){
     for(let t=0;t<300;t++){const p=shuffle(G.slice());if(B.every((b,i)=>p[i]!==b))return p}
@@ -502,7 +506,7 @@ function PlayerUI(room,{send,isHost}){
     if(!P||!P.stocks.length){setHTML(el,'<div class="run" style="--dur:22s"><span class="it flat">TRICK OR TRADE EXCHANGE · MARKET OPENS SOON · LIST YOUR GIFT ·</span><span class="it flat">TRICK OR TRADE EXCHANGE · MARKET OPENS SOON · LIST YOUR GIFT ·</span></div>');return}
     const live=['book','match','reveal','done'].includes(P.phase);
     let one=P.stocks.map(s=>{
-      if(s.sold)return `<span class="it"><span>$${esc(s.tk)}</span><span class="px">${s.soldPx?'SOLD '+s.soldPx:'LEFTOVER'}</span></span>`;
+      if(s.sold)return `<span class="it"><span>$${esc(s.tk)}</span><span class="px">${s.soldPx?'SOLD '+s.soldPx:'MATCHED'}</span></span>`;
       if(!live)return `<span class="it"><span>$${esc(s.tk)}</span><span class="flat">IPO</span></span>`;
       const c=chg(s.hist);return `<span class="it"><span>$${esc(s.tk)}</span><span class="px">${s.px}</span><span class="${c.cls}">${c.sym}${c.d?Math.abs(c.d):''}</span></span>`}).join('');
     let n=1;while(P.stocks.length*n<8)n++;one=one.repeat(n);
@@ -612,27 +616,34 @@ function PlayerUI(room,{send,isHost}){
     setHTML(el,rows.join(''));
     $('#lockBtn').textContent=used?'Lock in my bids':'Lock in without bidding';
   }
+  const GHOST='<path d="M30 2C14 2 6 15 6 30v36l8-7 8 7 8-7 8 7 8-7 8 7V30C54 15 46 2 30 2z" fill="#f6eddc"/><circle cx="22" cy="28" r="4" fill="#120b1a"/><circle cx="38" cy="28" r="4" fill="#120b1a"/><ellipse cx="30" cy="42" rx="4" ry="5" fill="#120b1a"/>';
   function stringsSVG(P){
     const people=P.people,tks=P.tickers,n=people.length,rowH=50,H=n*rowH+20,y=i=>20+i*rowH+rowH/2-10;
-    const shown=P.match,fills=shown.filter(s=>s.type!=='freeze'),done=shown.length>=P.matchTotal;
-    const pB=new Set(fills.map(s=>s.who)),pG=new Set(fills.map(s=>s.tk));let svg='';
-    shown.forEach((s,i)=>{const y1=y(people.indexOf(s.who)),y2=y(tks.indexOf(s.tk)),d=`M128 ${y1} C 180 ${y1}, 180 ${y2}, 232 ${y2}`;
-      if(s.type==='freeze'){if(i===shown.length-1)svg+=`<path class="frz" d="${d}"/>`}else svg+=`<path class="str ${i===shown.length-1?'new':''}" d="${d}"/>`});
+    const shown=P.match,done=shown.length>=P.matchTotal;
+    const pB=new Set(shown.map(s=>s.who)),pG=new Set(shown.map(s=>s.tk));let svg='',ghost='';
+    const curve=(y1,y2)=>`M128 ${y1} C 180 ${y1}, 180 ${y2}, 232 ${y2}`;
+    shown.forEach((s,i)=>{const y1=y(people.indexOf(s.who)),y2=y(tks.indexOf(s.tk)),latest=i===shown.length-1;
+      if(s.type==='ghost'&&latest){
+        const yw=y(tks.indexOf(s.want)),d1=curve(y1,yw),d2=curve(y1,y2);
+        svg+=`<path class="str" d="${d1}"><animate attributeName="d" from="${d1}" to="${d2}" begin="1.4s" dur="1.6s" fill="freeze" calcMode="spline" keySplines=".4 0 .2 1" keyTimes="0;1"/></path>`;
+        ghost=`<g transform="translate(232 ${yw})"><animateTransform attributeName="transform" type="translate" from="232 ${yw}" to="232 ${y2}" begin="1.4s" dur="1.6s" fill="freeze" calcMode="spline" keySplines=".4 0 .2 1" keyTimes="0;1"/>
+          <g opacity="0"><animate attributeName="opacity" from="0" to="1" begin=".4s" dur=".6s" fill="freeze"/><g transform="translate(-30 -32) scale(.44)">${GHOST}</g></g></g>`;
+      }else svg+=`<path class="str ${latest?'new':''}" d="${curve(y1,y2)}"/>`});
     people.forEach((p,i)=>{svg+=`<text x="118" y="${y(i)+5}" text-anchor="end" font-size="15" class="${pB.has(p)||done?'':'dim'}">${esc(short(p,7))}</text><circle cx="128" cy="${y(i)}" r="5" fill="#f6eddc"/>`});
     tks.forEach((t,i)=>{svg+=`<circle cx="232" cy="${y(i)}" r="5" fill="#ff7a1a"/><text x="242" y="${y(i)+5}" font-size="13" class="tkt ${pG.has(t)||done?'':'dim'}">$${esc(t)}</text>`});
-    return `<svg viewBox="0 0 340 ${H}" role="img" aria-label="Who is matched to which gift">${svg}</svg>`;
+    return `<svg viewBox="0 0 340 ${H}" role="img" aria-label="Who is matched to which gift">${svg}${ghost}</svg>`;
   }
   function renderMatch(){
     const P=V.pub,me=V.me,shown=P.match||[],last=shown[shown.length-1];
-    setHTML($('#mine'),me.got?`<div class="card result" style="border-color:var(--up)"><div class="muted">You got</div><div class="tk">$${esc(me.got.tk)}</div><div class="htags">${esc(me.got.tags.join(' '))}</div><div class="muted" style="margin-top:4px">${me.got.a?'for '+me.got.a+' candy':'a gift nobody won'}</div></div>`:'');
+    setHTML($('#mine'),me.got?`<div class="card result" style="border-color:var(--up)"><div class="muted">You got</div><div class="tk">$${esc(me.got.tk)}</div><div class="htags">${esc(me.got.tags.join(' '))}</div>${me.got.a?`<div class="muted" style="margin-top:4px">for ${me.got.a} candy</div>`:''}</div>`:'');
     let c;
     if(!last)c=`<div class="show neutral"><div class="lab">MATCHING</div><div class="main">Bidding is closed.</div><div class="note">The highest single bid gets matched first. Everyone gets exactly one gift, never their own.</div></div>`;
-    else if(last.type==='fill')c=`<div class="show"><div class="lab">MATCH ${shown.filter(s=>s.type!=='freeze').length} OF ${P.people.length}${last.tie?' · TIE, DECIDED BY DICE':''}</div><div class="main">${esc(last.who)} gets <span class="tk">$${esc(last.tk)}</span></div><div class="price">${last.a} candy</div>${last.others.length?`<div class="note">Outbid: ${last.others.map(o=>esc(o.who)+' '+o.a).join(', ')}</div>`:''}</div>`;
-    else if(last.type==='freeze')c=`<div class="show neutral"><div class="lab">ORDER FROZEN</div><div class="main">${esc(last.who)} on <span class="tk">$${esc(last.tk)}</span> at ${last.a}</div><div class="note">This would leave someone holding their own gift, so it’s skipped.</div></div>`;
-    else c=`<div class="show"><div class="lab">LEFTOVER</div><div class="main">${esc(last.who)} gets <span class="tk">$${esc(last.tk)}</span></div><div class="note">No winning bid, so a gift nobody won goes to ${esc(last.who)}.</div></div>`;
+    else if(last.type==='fill')c=`<div class="show"><div class="lab">MATCH ${shown.length} OF ${P.people.length}${last.tie?' · TIE, DECIDED BY DICE':''}</div><div class="main">${esc(last.who)} gets <span class="tk">$${esc(last.tk)}</span></div><div class="price">${last.a} candy</div>${last.others.length?`<div class="note">Other bids: ${last.others.map(o=>esc(o.who)+' '+o.a).join(', ')}</div>`:''}</div>`;
+    else if(last.type==='ghost')c=`<div class="show"><div class="lab">MATCH ${shown.length} OF ${P.people.length} · A GHOST STEPS IN</div><div class="main">${esc(last.who)} gets <span class="tk">$${esc(last.tk)}</span></div>${last.a?`<div class="price">${last.a} candy</div>`:''}<div class="note">${esc(last.who)} bid ${last.wantA} on $${esc(last.want)}, but that would leave ${esc(last.other)} with their own gift. The ghost moved the string.</div></div>`;
+    else c=`<div class="show"><div class="lab">MATCH ${shown.length} OF ${P.people.length}</div><div class="main">${esc(last.who)} gets <span class="tk">$${esc(last.tk)}</span></div></div>`;
     setHTML($('#showCard'),c);
     setHTML($('#strings'),stringsSVG(P));
-    setHTML($('#feed'),shown.filter(s=>s.type!=='freeze').slice().reverse().map(s=>`<div class="lrow ${s.who===me.name?'me':''}"><div class="l">${esc(s.who)} · <span class="tk">$${esc(s.tk)}</span></div><div class="r">${s.a?s.a+' candy':'leftover'}</div></div>`).join('')||'<div class="muted">First match in a few seconds…</div>');
+    setHTML($('#feed'),shown.slice().reverse().map(s=>`<div class="lrow ${s.who===me.name?'me':''}"><div class="l">${esc(s.who)} · <span class="tk">$${esc(s.tk)}</span>${s.type==='ghost'?' <span class="muted small">(ghost)</span>':''}</div><div class="r">${s.a?s.a+' candy':''}</div></div>`).join('')||'<div class="muted">First match in a few seconds…</div>');
   }
   function circleSVG(P){
     const ppl=P.people,n=ppl.length,cx=170,cy=165,R=118,pos={};
@@ -647,12 +658,12 @@ function PlayerUI(room,{send,isHost}){
   function renderReveal(){
     const P=V.pub,me=V.me,R=P.reveals||[],last=R[R.length-1],done=P.phase==='done';
     setHTML($('#showCard'),done?`<div class="show center"><div class="bigword">Happy Halloween</div><div class="note">Everyone, go open your gift.</div></div>`
-      :last?`<div class="show"><div class="lab">REVEAL ${R.length} OF ${P.revealTotal}</div><div class="main"><span class="tk">$${esc(last.tk)}</span> came from ${esc(last.from)}</div><div class="note">${esc(last.tags.join(' '))}</div><div class="main" style="font-size:20px">${esc(last.from)} → ${esc(last.to)}</div><div class="price">${last.a?last.a+' candy':'leftover'}</div></div>`
+      :last?`<div class="show"><div class="lab">REVEAL ${R.length} OF ${P.revealTotal}</div><div class="main"><span class="tk">$${esc(last.tk)}</span> came from ${esc(last.from)}</div><div class="note">${esc(last.tags.join(' '))}</div><div class="main" style="font-size:20px">${esc(last.from)} → ${esc(last.to)}</div>${last.a?`<div class="price">${last.a} candy</div>`:''}</div>`
       :`<div class="show neutral"><div class="lab">THE REVEAL</div><div class="main">Who brought what?</div><div class="note">Every gift’s owner, one at a time.</div></div>`);
     setHTML($('#circle'),circleSVG(P));
     setHTML($('#mine'),me.got?`<div class="card result"><div class="muted">You got</div><div class="tk">$${esc(me.got.tk)}</div><div class="htags">${esc(me.got.tags.join(' '))}</div><div class="from">${me.from?`from <b>${esc(me.from)}</b>`:'<span class="muted">from … (coming up)</span>'}</div></div>
       <div class="card row2"><span class="muted">Your $${esc(me.tk||'')} went to</span><b style="font-size:19px">${me.gaveTo?esc(me.gaveTo):'…'}</b></div>`:'');
-    setHTML($('#feed'),R.slice().reverse().map(r=>`<div class="lrow ${r.to===me.name?'me':''}"><div class="l">${esc(r.from)} → ${esc(r.to)}</div><div class="r">${r.a?r.a+' candy':'leftover'}</div><div class="s"><span class="tk">$${esc(r.tk)}</span> ${esc(r.tags.join(' '))}</div></div>`).join('')||'<div class="muted">First reveal in a few seconds…</div>');
+    setHTML($('#feed'),R.slice().reverse().map(r=>`<div class="lrow ${r.to===me.name?'me':''}"><div class="l">${esc(r.from)} → ${esc(r.to)}</div><div class="r">${r.a?r.a+' candy':''}</div><div class="s"><span class="tk">$${esc(r.tk)}</span> ${esc(r.tags.join(' '))}</div></div>`).join('')||'<div class="muted">First reveal in a few seconds…</div>');
   }
   function tick(){
     if(!V)return;const now=Date.now()+offset,P=V.pub;

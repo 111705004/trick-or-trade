@@ -303,9 +303,14 @@ function Engine(room,onSync){
       case 'ask':{
         if(!S.order.includes(pid)){toastTo(pid,'Only players in this round can ask.');return}
         // accept questions for the gift on stage, plus a 4-second grace period for the gift that just left the stage
-        let g=S.order[S.rsIdx];
-        if(m.tk&&tkOf(g)!==m.tk){const prev=S.order[S.rsIdx-1];if(S.phase==='roadshow'&&prev&&tkOf(prev)===m.tk&&Date.now()-(S.rsEndsAt-RS_MS)<4000)g=prev;else{toastTo(pid,'Too late, that gift already left the stage.');return}}
-        if(S.phase!=='roadshow'&&!(S.phase==='book'&&m.tk&&tkOf(S.order[S.order.length-1])===m.tk&&Date.now()-(S.bookEndsAt-BOOK_MS)<4000)){toastTo(pid,'Questions are closed.');return}
+        const now=Date.now();let g=null;
+        if(S.phase==='roadshow'){
+          const cur=S.order[S.rsIdx],prev=S.order[S.rsIdx-1];
+          if(!m.tk||tkOf(cur)===m.tk)g=cur;else if(prev&&tkOf(prev)===m.tk&&now-(S.rsEndsAt-RS_MS)<4000)g=prev;
+        }else if(S.phase==='book'){
+          const last=S.order[S.order.length-1];if(last&&tkOf(last)===m.tk&&now-(S.bookEndsAt-BOOK_MS)<4000)g=last;
+        }
+        if(!g){toastTo(pid,S.phase==='roadshow'?'Too late, that gift already left the stage.':'Questions are closed.');return}
         if(!g||g===pid)return;
         const q=String(m.q||'').trim().slice(0,90);if(!q)return;
         if(S.qa.some(x=>x.g===g&&x.q.toLowerCase()===q.toLowerCase())){toastTo(pid,'Someone already asked that one.');return}

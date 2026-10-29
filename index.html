@@ -301,11 +301,16 @@ function Engine(room,onSync){
         delete S.ready[pid];sfx.tick();break;}
       case 'ready':if(S.phase==='lobby'&&P&&P.tk){if(m.v)S.ready[pid]=true;else delete S.ready[pid]}break;
       case 'ask':{
-        if(S.phase!=='roadshow')return;const g=S.order[S.rsIdx];if(!g||g===pid||!S.order.includes(pid))return;
+        if(!S.order.includes(pid)){toastTo(pid,'Only players in this round can ask.');return}
+        // accept questions for the gift on stage, plus a 4-second grace period for the gift that just left the stage
+        let g=S.order[S.rsIdx];
+        if(m.tk&&tkOf(g)!==m.tk){const prev=S.order[S.rsIdx-1];if(S.phase==='roadshow'&&prev&&tkOf(prev)===m.tk&&Date.now()-(S.rsEndsAt-RS_MS)<4000)g=prev;else{toastTo(pid,'Too late, that gift already left the stage.');return}}
+        if(S.phase!=='roadshow'&&!(S.phase==='book'&&m.tk&&tkOf(S.order[S.order.length-1])===m.tk&&Date.now()-(S.bookEndsAt-BOOK_MS)<4000)){toastTo(pid,'Questions are closed.');return}
+        if(!g||g===pid)return;
         const q=String(m.q||'').trim().slice(0,90);if(!q)return;
-        if(S.qa.some(x=>x.g===g&&x.q.toLowerCase()===q.toLowerCase())){toastTo(pid,'Someone already asked that.');return}
-        if(S.qa.filter(x=>x.g===g&&x.by===pid).length>=5){toastTo(pid,'You can ask up to 5 questions per gift.');return}
-        S.qa.push({id:uid(),g,by:pid,q,a:null});sfx.tick();break;}
+        if(S.qa.some(x=>x.g===g&&x.q.toLowerCase()===q.toLowerCase())){toastTo(pid,'Someone already asked that one.');return}
+        if(S.qa.filter(x=>x.g===g&&x.by===pid).length>=10){toastTo(pid,'You can ask up to 10 questions per gift.');return}
+        S.qa.push({id:uid(),g,by:pid,q,a:null});sfx.tick();toastTo(pid,'Sent anonymously');break;}
       case 'answer':{const it=S.qa.find(x=>x.id===m.qid);if(!it||it.g!==pid||!ANSWERS.some(a=>a[1]===m.a))return;it.a=m.a;break;}
       case 'orders':{
         if(S.phase!=='book'||!S.order.includes(pid)||S.locked[pid])return;
@@ -464,9 +469,9 @@ function PlayerUI(room,{send,isHost}){
     if(a==='chip'){const t=$('#tagIn');let cur=parseTags(t.value);const v=b.dataset.v;cur=cur.includes(v)?cur.filter(x=>x!==v):cur.length<4?cur.concat(v):cur;t.value=cur.join(' ');syncChips();return}
     if(a==='edit'){editing=true;lastKey='';render();return}
     if(a==='ready'){send({t:'ready',v:!V.me.ready});return}
-    if(a==='q'){send({t:'ask',q:b.dataset.v});b.disabled=true;toast('Sent anonymously');return}
+    if(a==='q'){send({t:'ask',q:b.dataset.v,tk:V.pub.stocks[V.pub.rsIdx].tk});return}
     if(a==='ownq'){ownQ=!ownQ;lastKey='';render();return}
-    if(a==='askfree'){const i=$('#qIn'),q=i.value.trim();if(!q)return;send({t:'ask',q});i.value='';toast('Sent anonymously');return}
+    if(a==='askfree'){const i=$('#qIn'),q=i.value.trim();if(!q)return;send({t:'ask',q,tk:V.pub.stocks[V.pub.rsIdx].tk});i.value='';return}
     if(a==='ans'){send({t:'answer',qid:b.dataset.q,a:b.dataset.v});return}
     if(a==='pm'){
       if(V.me.locked)return;draft=draft||Object.assign({},V.me.ordersTk);

@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Trick or Trade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Fredoka:wght@400;500;600;700&family=Rubik+Mono+One&display=swap">
+<style>
+/* Trick or Trade — a haunted stock exchange. Big screen = trading floor, phones = trading terminals. */
+:root{
+  --void:#120b1a; --grave:#1c1228; --tomb:#291b39; --line:#463160;
+  --bone:#f6eddc; --mist:#b8a7cc; --pumpkin:#ff7a1a; --candy:#ffd23f; --slime:#8be04e; --blood:#ff3a5c;
+  --f-logo:"Creepster","Fredoka",cursive;
+  --f-ui:"Fredoka","PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-tick:"Rubik Mono One","Fredoka",monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--void);color:var(--bone);font-family:var(--f-ui);font-size:16px;line-height:1.5}
+body{padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px));overflow-x:hidden;
+  background:radial-gradient(80vmax 50vmax at 100% 0%,rgba(255,122,26,.13),transparent 60%),radial-gradient(70vmax 60vmax at 0% 100%,rgba(139,224,78,.07),transparent 60%),var(--void);background-attachment:fixed}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--candy);outline-offset:3px}
+
+.logo{font-family:var(--f-logo);font-weight:400;letter-spacing:.02em;line-height:.95;margin:0;color:var(--pumpkin);text-shadow:0 0 30px rgba(255,122,26,.35)}
+.logo .or{color:var(--bone);font-size:.6em;vertical-align:.2em;margin:0 .15em}
+.tag-line{color:var(--mist);font-size:15px}
+.tk{font-family:var(--f-tick);letter-spacing:-.02em}
+.muted{color:var(--mist)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:12px 20px;font-size:18px;font-weight:600;
+  background:var(--pumpkin);color:#1a0a00;box-shadow:0 4px 0 #a8460a,0 10px 30px -10px rgba(255,122,26,.8);transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #a8460a}
+.btn[disabled]{background:var(--tomb);color:var(--mist);box-shadow:none;cursor:not-allowed}
+.btn.sec{background:var(--tomb);color:var(--bone);box-shadow:0 4px 0 #120b1a}
+.btn.big{font-size:22px;padding:16px 28px}
+.btn.wide{width:100%}
+.card{background:var(--grave);border:2px solid var(--line);border-radius:20px;padding:18px}
+input[type=text],textarea{width:100%;background:var(--void);border:2px solid var(--line);border-radius:12px;padding:12px 14px;font-size:17px}
+input[type=text]:focus,textarea:focus{border-color:var(--pumpkin);outline:none}
+textarea{resize:none;min-height:64px}
+label{display:block;font-weight:600;margin:0 0 6px}
+.field{margin-bottom:14px}
+.hint{font-size:13px;color:var(--mist);margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:2px dashed var(--line);background:transparent;border-radius:999px;padding:4px 12px;font-size:14px;color:var(--mist)}
+.chip:hover,.chip.on{border-color:var(--pumpkin);color:var(--candy)}
+.htags{color:var(--candy);font-weight:600;overflow-wrap:anywhere}
+
+/* ---------- landing ---------- */
+.landing{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;justify-content:center;gap:28px;padding-block:32px}
+.landing .logo{font-size:clamp(64px,18vw,112px)}
+.landing .opts{display:grid;gap:14px}
+.joinrow{display:flex;gap:10px}
+.joinrow input{text-transform:uppercase;font-family:var(--f-tick);font-size:22px;letter-spacing:.1em;text-align:center}
+.pumpkins{display:flex;gap:10px;align-items:flex-end}
+
+/* ---------- phone ---------- */
+.phone{max-width:520px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:16px}
+.ph-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ph-head .logo{font-size:30px}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--tomb);border-radius:999px;padding:4px 12px;font-size:14px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--slime);flex:none}
+.pill.off .dot{background:var(--blood)}
+.big-msg{text-align:center;padding:24px 8px}
+.big-msg .em{font-family:var(--f-logo);font-size:44px;color:var(--pumpkin);line-height:1}
+.big-msg p{margin:8px 0 0;color:var(--mist)}
+.stockcard{background:linear-gradient(160deg,var(--tomb),var(--grave));border:2px solid var(--pumpkin);border-radius:20px;padding:18px;position:relative;overflow:hidden}
+.stockcard .tk{font-size:34px;color:var(--pumpkin);line-height:1}
+.stockcard .pitch{font-size:18px;margin-top:10px;overflow-wrap:anywhere}
+.stockcard .htags{margin-top:8px;font-size:18px}
+.timer{font-family:var(--f-tick);font-size:15px;color:var(--candy);font-variant-numeric:tabular-nums}
+.qlist{display:flex;flex-direction:column;gap:10px}
+.qa{background:var(--grave);border-radius:14px;padding:10px 14px;border:1px solid var(--line)}
+.qa .q{font-weight:600;overflow-wrap:anywhere}
+.qa .a{color:var(--slime);overflow-wrap:anywhere}
+.qa .a.wait{color:var(--mist);font-style:italic}
+.ansbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ansbtns .chip{border-style:solid}
+.inrow{display:flex;gap:8px;margin-top:8px}
+.inrow input{flex:1;min-width:0}
+.inrow .btn{padding:10px 16px;font-size:16px}
+.budget{position:sticky;top:0;z-index:5;background:var(--void);padding:10px 0;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--line)}
+.budget .left{font-family:var(--f-tick);font-size:26px;color:var(--candy)}
+.budget .left.zero{color:var(--slime)}
+.orow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+.orow .tk{font-size:20px;color:var(--pumpkin)}
+.orow .sub{font-size:14px;color:var(--mist);overflow-wrap:anywhere}
+.stepper{display:flex;align-items:center;gap:4px}
+.stepper button{width:40px;height:40px;border-radius:10px;border:2px solid var(--line);background:var(--tomb);font-weight:700;font-size:14px}
+.stepper button[disabled]{opacity:.3;cursor:not-allowed}
+.stepper .amt{min-width:46px;text-align:center;font-family:var(--f-tick);font-size:20px;font-variant-numeric:tabular-nums}
+.stepper .amt.has{color:var(--candy)}
+.result{text-align:center;padding:22px 16px}
+.result .tk{font-size:44px;color:var(--pumpkin)}
+.result .from{font-size:20px;margin-top:12px}
+.result .from b{color:var(--blood)}
+
+/* ---------- host ---------- */
+.host{min-height:100vh;display:flex;flex-direction:column;gap:18px;padding-block:18px}
+.h-top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.h-top .logo{font-size:clamp(36px,4vw,56px)}
+.roomchip{font-family:var(--f-tick);font-size:clamp(18px,2vw,26px);background:var(--tomb);border:2px solid var(--line);border-radius:14px;padding:6px 14px}
+.roomchip b{color:var(--candy)}
+.phase{font-weight:600;color:var(--mist);font-size:18px}
+.tape{overflow:hidden;border-block:2px solid var(--line);background:var(--grave);white-space:nowrap;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)))}
+.tape .run{display:inline-flex;gap:40px;padding:10px 20px;animation:tape 30s linear infinite}
+.tape span{font-family:var(--f-tick);font-size:18px}
+.tape .up{color:var(--slime)} .tape .flat{color:var(--mist)}
+@keyframes tape{to{transform:translateX(-50%)}}
+.h-main{flex:1;display:grid;gap:24px;align-items:start}
+.h-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.h-bar .ctl{display:flex;gap:10px;flex-wrap:wrap}
+.lobby-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
+.qrbox{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.qr{background:var(--bone);padding:14px;border-radius:18px;line-height:0}
+.qr img,.qr canvas{width:min(300px,60vw)!important;height:auto!important}
+.code{font-family:var(--f-tick);font-size:clamp(44px,6vw,80px);color:var(--candy);letter-spacing:.08em;line-height:1}
+.url{font-size:14px;color:var(--mist);overflow-wrap:anywhere}
+.souls{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.soul{background:var(--grave);border:2px solid var(--line);border-radius:60px 60px 14px 14px;padding:22px 12px 14px;text-align:center;min-width:0}
+.soul .nm{font-size:22px;font-weight:700;overflow-wrap:anywhere}
+.soul .st{font-size:14px;color:var(--slime)}
+.soul.wait .st{color:var(--mist)}
+.soul.off{opacity:.45}
+.soul.empty{border-style:dashed;opacity:.35;display:flex;align-items:center;justify-content:center;min-height:100px;color:var(--mist)}
+
+.rs-grid{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+.stage{background:linear-gradient(160deg,var(--tomb),var(--grave));border:3px solid var(--pumpkin);border-radius:28px;padding:clamp(20px,3vw,40px);position:relative;overflow:hidden}
+.stage .num{color:var(--mist);font-size:18px}
+.stage .tk{font-size:clamp(56px,8vw,120px);color:var(--pumpkin);line-height:1;margin:6px 0 10px}
+.stage .htags{font-size:clamp(22px,2.4vw,34px)}
+.stage .pitch{font-size:clamp(22px,2.4vw,34px);margin-top:16px;overflow-wrap:anywhere}
+.stage .pitch::before{content:"“";color:var(--pumpkin)} .stage .pitch::after{content:"”";color:var(--pumpkin)}
+.clock{font-family:var(--f-tick);font-size:clamp(34px,4vw,56px);color:var(--candy);font-variant-numeric:tabular-nums}
+.clock.urgent{color:var(--blood)}
+.feed{display:flex;flex-direction:column;gap:12px;max-height:62vh;overflow:auto}
+.feed .qa{font-size:clamp(17px,1.6vw,22px);padding:14px 18px;animation:pop .35s ease-out}
+@keyframes pop{from{transform:translateY(10px);opacity:0}}
+.feed .empty{color:var(--mist);font-size:18px}
+
+.book-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.bk{background:var(--grave);border:2px solid var(--line);border-radius:20px;padding:18px;min-width:0}
+.bk .tk{font-size:32px;color:var(--pumpkin)}
+.bk .flames{font-size:30px;min-height:40px;letter-spacing:2px}
+.bk .cnt{color:var(--mist)}
+.bk.hot{border-color:var(--blood);box-shadow:0 0 30px -6px rgba(255,58,92,.6)}
+
+.alloc-grid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+.strings{width:100%;height:auto;display:block}
+.strings text{font-family:var(--f-ui);fill:var(--bone)}
+.strings .tkt{font-family:var(--f-tick);fill:var(--pumpkin)}
+.strings .dim{opacity:.35}
+.strings .str{fill:none;stroke:var(--blood);stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(255,58,92,.7))}
+.strings .str.new{stroke-dasharray:1200;stroke-dashoffset:1200;animation:draw 1.1s ease-out forwards}
+.strings .frz{fill:none;stroke:var(--mist);stroke-width:3;stroke-dasharray:8 8;opacity:.6}
+@keyframes draw{to{stroke-dashoffset:0}}
+.step-card{border-radius:22px;padding:22px;background:var(--grave);border:3px solid var(--line);animation:pop .4s ease-out}
+.step-card.fill{border-color:var(--blood)}
+.step-card .lab{font-family:var(--f-tick);font-size:16px;color:var(--mist)}
+.step-card .main{font-size:clamp(26px,2.8vw,40px);font-weight:700;margin:6px 0;overflow-wrap:anywhere}
+.step-card .main .tk{color:var(--pumpkin)}
+.step-card .amt{font-family:var(--f-tick);color:var(--candy);font-size:clamp(28px,3vw,44px)}
+.step-card .others{color:var(--mist);font-size:17px;margin-top:8px;overflow-wrap:anywhere}
+.step-card.freeze{border-color:var(--mist)}
+
+.reveal-grid{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+.circle text{font-family:var(--f-ui);fill:var(--bone);font-weight:600}
+.circle .node{fill:var(--tomb);stroke:var(--line);stroke-width:3}
+.circle .node.lit{stroke:var(--pumpkin)}
+.circle .arrow{fill:none;stroke:var(--blood);stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(255,58,92,.7))}
+.circle .arrow.new{stroke-dasharray:1400;stroke-dashoffset:1400;animation:draw 1.3s ease-out forwards}
+.circle .atk{font-family:var(--f-tick);fill:var(--candy);font-size:20px}
+.ledger{display:flex;flex-direction:column;gap:8px}
+.ledger .row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;background:var(--grave);border-radius:14px;padding:12px 16px;font-size:clamp(17px,1.6vw,22px);animation:pop .4s}
+.ledger .row .ar{color:var(--blood);font-weight:700}
+.ledger .row .to{text-align:right}
+.ledger .row .gift{grid-column:1/-1;font-size:.8em}
+.ledger .row .gift .tk{color:var(--pumpkin)}
+.drum{text-align:center;padding:20px;border-radius:22px;background:var(--grave);border:3px solid var(--pumpkin)}
+.drum .tk{font-size:clamp(40px,5vw,72px);color:var(--pumpkin)}
+.drum .by{font-size:clamp(22px,2.4vw,34px);margin-top:8px}
+.drum .by b{color:var(--blood);font-size:1.3em}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tomb);border:2px solid var(--pumpkin);border-radius:14px;padding:10px 18px;z-index:50;max-width:90vw}
+
+@media (max-width:900px){
+  .lobby-grid,.rs-grid,.alloc-grid,.reveal-grid{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  .tape .run,.feed .qa,.step-card,.ledger .row{animation:none}
+  .strings .str.new,.circle .arrow.new{animation:none;stroke-dashoffset:0}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){
+"use strict";
+/* ===================== config ===================== */
+const RS_MS=60000, BOOK_MS=120000, CAPITAL=100, AUTO_MS=4200;
+const PEER_PREFIX='trick-or-trade-v1-';
+const TICKERS=['BOO','GHST','PMKN','BATS','FANG','HEX','GOO','SKUL','WTCH','CNDY','MUMY','ZMBI','CRPT','HOWL','EEK','SPDR','CRWS','BREW','COFN','MOON'];
+const TAG_SUGGEST=['#會發光','#吃的','#實用','#療癒','#搞笑','#毛茸茸','#文青','#香香的','#很重','#手作','#辦公室','#大人味'];
+const QUICK_Q=['Is it edible? 🍬','Can I wear it?','Is it useful?','Is it squishy?','Does it make noise?','Is it a joke gift?','Would my mom like it?','Does it glow?'];
+const QUICK_A=['Yes','No','Kind of','🤐 No comment'];
+
+const params=new URLSearchParams(location.search);
+const TEST=params.has('bc');           // BroadcastChannel mode for local testing (same browser, many tabs)
+const BASE=location.href.split('?')[0].split('#')[0];
+
+/* ===================== helpers ===================== */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,10);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function parseTags(str){return [...new Set(String(str).split(/[\s,，、#＃]+/).map(t=>t.trim()).filter(Boolean).map(t=>'#'+t.slice(0,12)))].slice(0,4)}
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let toastT;function toast(t,ms){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,ms||3000)}
+function setHTML(el,h){if(!el)return;if(el._h!==h){el.innerHTML=h;el._h=h}}
+const fmtClock=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+
+/* ===================== sound ===================== */
+let AC=null,soundOn=false;
+function tone(f,d,type,v,delay){if(!soundOn)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+(delay||0);const o=AC.createOscillator(),g=AC.createGain();o.type=type||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.15,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d+.05)}catch(e){}}
+const sfx={
+  bell(){tone(392,1.4,'triangle',.16);tone(587,1.2,'sine',.08,.04);tone(784,1,'sine',.05,.08)},
+  tick(){tone(880,.06,'square',.04)},
+  string(){tone(220,.5,'sawtooth',.06);tone(330,.6,'triangle',.08,.08)},
+  boo(){tone(180,.9,'sine',.15);tone(140,1.1,'sine',.12,.2)},
+  gong(){for(let i=0;i<3;i++)tone(110+i*55,2,'sine',.12,i*.05)}
+};
+
+/* ===================== transport (PeerJS, or BroadcastChannel in test mode) ===================== */
+function fakeConn(ch,from,to){const h={};return{send(d){ch.postMessage({to,from,kind:'data',data:d})},on(ev,f){(h[ev]=h[ev]||[]).push(f)},_emit(ev,d){(h[ev]||[]).forEach(f=>f(d))},close(){ch.postMessage({to,from,kind:'close'})}}}
+const Net={
+  host(room,{onConn,onReady,onError}){
+    if(TEST){
+      const ch=new BroadcastChannel('tot-'+room),conns={};
+      ch.onmessage=e=>{const m=e.data;if(m.to!=='host')return;let c=conns[m.from];
+        if(m.kind==='close'){if(c){c._emit('close');delete conns[m.from]}return}
+        if(!c){c=conns[m.from]=fakeConn(ch,'host',m.from);onConn(c)}
+        c._emit('data',m.data)};
+      setTimeout(onReady,0);return;
+    }
+    if(!window.Peer){onError({type:'nolib'});return}
+    const peer=new Peer(PEER_PREFIX+room.toLowerCase());
+    peer.on('open',onReady);
+    peer.on('connection',c=>{c.on('open',()=>onConn(c))});
+    peer.on('error',e=>onError(e,peer));
+    peer.on('disconnected',()=>{setTimeout(()=>{try{if(!peer.destroyed)peer.reconnect()}catch(e){}},1500)});
+    Net._peer=peer;
+  },
+  join(room,{onOpen,onData,onClose,onError}){
+    if(TEST){
+      const me='c'+uid(),ch=new BroadcastChannel('tot-'+room),c=fakeConn(ch,me,'host');
+      ch.onmessage=e=>{const m=e.data;if(m.to===me&&m.kind==='data')onData(m.data)};
+      addEventListener('beforeunload',()=>c.close());
+      setTimeout(()=>onOpen(c),30);return;
+    }
+    if(!window.Peer){onError({type:'nolib'});return}
+    const peer=new Peer();let done=false;
+    const fail=e=>{if(done)return;done=true;try{peer.destroy()}catch(x){}onError(e||{})};
+    peer.on('open',()=>{
+      const c=peer.connect(PEER_PREFIX+room.toLowerCase(),{reliable:true,serialization:'json'});
+      c.on('open',()=>onOpen(c));
+      c.on('data',onData);
+      c.on('close',()=>{if(done)return;done=true;try{peer.destroy()}catch(x){}onClose()});
+      c.on('error',fail);
+    });
+    peer.on('error',fail);
+    peer.on('disconnected',()=>fail({type:'disconnected'}));
+  }
+};
+
+/* ===================== routing ===================== */
+const app=$('#app');
+const ROOM=(params.get('room')||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);
+if(params.get('host')&&ROOM)startHost(ROOM,true);
+else if(ROOM)startPhone(ROOM);
+else landing();
+
+function soundToggleHTML(){return '<button class="btn sec" data-act="sound" style="padding:8px 14px;font-size:15px">'+(soundOn?'🔊 Sound on':'🔈 Sound off')+'</button>'}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act="sound"]');if(!b)return;soundOn=!soundOn;b.textContent=soundOn?'🔊 Sound on':'🔈 Sound off';if(soundOn)sfx.bell()});
+
+/* ===================== landing ===================== */
+function landing(){
+  const saved=store.get('tot-host');
+  const canResume=saved&&saved.room&&saved.phase!=='lobby'&&Date.now()-(saved.created||0)<6*3600e3;
+  app.innerHTML=`<div class="landing">
+    <div>
+      <h1 class="logo">Trick<span class="or">or</span>Trade</h1>
+      <div class="tag-line">A Halloween gift IPO. List your gift, pitch it, bid in secret, and follow the red string.</div>
+    </div>
+    <div class="opts">
+      <div class="card">
+        <label>On the big screen (TV or laptop)</label>
+        <button class="btn big wide" id="hostBtn">Open the trading floor</button>
+        ${canResume?`<button class="btn sec wide" id="resumeBtn" style="margin-top:10px">Resume room ${esc(saved.room)}</button>`:''}
+        <div class="hint">Keep this screen open the whole game. It runs the room.</div>
+      </div>
+      <div class="card">
+        <label for="codeIn">On your phone</label>
+        <div class="joinrow"><input type="text" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off"><button class="btn" id="joinBtn">Join</button></div>
+        <div class="hint">Or just scan the QR code on the big screen.</div>
+      </div>
+    </div></div>`;
+  $('#hostBtn').onclick=()=>{store.del('tot-host');const code=newCode();go(code,true)};
+  if(canResume)$('#resumeBtn').onclick=()=>go(saved.room,true);
+  const join=()=>{const c=$('#codeIn').value.toUpperCase().replace(/[^A-Z]/g,'');if(c.length===4)go(c,false);else toast('Room codes are 4 letters.')};
+  $('#joinBtn').onclick=join;$('#codeIn').addEventListener('keydown',e=>{if(e.key==='Enter')join()});
+}
+function newCode(){const L='ABCDEFGHJKMNPQRSTUVWXYZ';let s='';for(let i=0;i<4;i++)s+=L[Math.floor(Math.random()*L.length)];return s}
+function go(code,host){location.href=BASE+'?room='+code+(host?'&host=1':'')+(TEST?'&bc=1':'')}
+
+/* =====================================================================
+   HOST — the trading floor. Holds all state; phones only send intents.
+   ===================================================================== */
+function startHost(room){
+  let S=store.get('tot-host');
+  if(!S||S.room!==room){S={room,created:Date.now(),phase:'lobby',players:{},order:[],rsIdx:0,rsEndsAt:0,qa:[],bookEndsAt:0,orders:{},alloc:null,allocShown:0,revealShown:0,auto:false}}
+  Object.values(S.players).forEach(p=>p.on=false);
+  const conns=new Map();  // pid -> conn
+  const joinURL=BASE+'?room='+room+(TEST?'&bc=1':'');
+  let ready=false,lastKey='',autoT=0;
+
+  const listed=()=>Object.keys(S.players).filter(id=>S.players[id].tk).sort((a,b)=>S.players[a].at-S.players[b].at);
+  const nm=id=>(S.players[id]&&S.players[id].name)||'???';
+  const tkOf=id=>(S.players[id]&&S.players[id].tk)||'???';
+
+  /* ---- networking ---- */
+  function connect(attempt){
+    Net.host(room,{
+      onReady(){ready=true;render()},
+      onConn(c){
+        let pid=null;
+        c.on('data',m=>{if(!m||typeof m!=='object')return;if(m.pid&&!pid){pid=String(m.pid).slice(0,40);conns.set(pid,c)}if(pid&&conns.get(pid)!==c)conns.set(pid,c);handle(pid,m)});
+        c.on('close',()=>{if(pid&&conns.get(pid)===c){conns.delete(pid);if(S.players[pid]){S.players[pid].on=false;sync()}}});
+      },
+      onError(e,peer){
+        if(e&&e.type==='unavailable-id'){ // room id still held (e.g. after refresh) — retry
+          try{peer.destroy()}catch(x){}
+          if((attempt||0)<15){setTimeout(()=>connect((attempt||0)+1),3000);setHTML($('#netStatus'),'Reclaiming room '+room+'…')}
+          else toast('Room '+room+' is busy. Go back and open a new floor.',8000);
+          return;
+        }
+        if(e&&e.type==='nolib'){toast('Could not load the connection library. Check the internet connection.',8000);return}
+        if(e&&(e.type==='network'||e.type==='server-error'||e.type==='socket-error')){toast('Connection hiccup, retrying…');}
+      }
+    });
+  }
+  connect(0);
+
+  function handle(pid,m){
+    const P=S.players[pid];
+    switch(m.t){
+      case 'hello': if(P){P.on=true} send(pid); sync(); break;
+      case 'list':{
+        if(S.phase!=='lobby'){send(pid);return}
+        let name=String(m.name||'').trim().slice(0,14)||'Ghost';
+        const taken=new Set(Object.keys(S.players).filter(id=>id!==pid).map(id=>S.players[id].name));
+        let n=name,k=2;while(taken.has(n))n=name+' '+(k++);
+        const tags=(Array.isArray(m.tags)?m.tags:[]).map(t=>String(t).slice(0,13)).slice(0,4);
+        const pitch=String(m.pitch||'').trim().slice(0,90);
+        let tk=P&&P.tk;
+        if(!tk){const used=new Set(Object.values(S.players).map(p=>p.tk));const free=TICKERS.filter(t=>!used.has(t));tk=free.length?free[Math.floor(Math.random()*free.length)]:'G'+Math.floor(Math.random()*900+100)}
+        S.players[pid]={name:n,tags,pitch,tk,at:P&&P.at||Date.now(),on:true};
+        sfx.tick();sync();break;
+      }
+      case 'unlist': if(S.phase==='lobby'&&P){delete S.players[pid];sync()} break;
+      case 'ask':{
+        if(S.phase!=='roadshow')return;const g=S.order[S.rsIdx];if(!g||g===pid||!S.order.includes(pid))return;
+        const q=String(m.q||'').trim().slice(0,120);if(!q)return;
+        if(S.qa.filter(x=>x.g===g&&x.by===pid).length>=8)return;
+        S.qa.push({id:uid(),g,by:pid,q,a:null,at:Date.now()});sfx.tick();sync();break;
+      }
+      case 'answer':{
+        const it=S.qa.find(x=>x.id===m.qid);if(!it||it.g!==pid)return;
+        it.a=String(m.a||'').trim().slice(0,120)||null;sync();break;
+      }
+      case 'orders':{
+        if(S.phase!=='book'||!S.order.includes(pid))return;
+        const clean={};let sum=0;
+        const byTk=m.ordersTk||{};
+        for(const g of S.order){if(g===pid)continue;const v=Math.max(0,Math.floor(+byTk[tkOf(g)]||0));if(v>0&&sum+v<=CAPITAL){clean[g]=v;sum+=v}}
+        S.orders[pid]=clean;sync();break;
+      }
+    }
+  }
+
+  /* ---- views sent to phones (never leak who owns which ticker) ---- */
+  function pubView(){
+    const stockIds=S.order.length?S.order:listed();
+    const heat={};stockIds.forEach(g=>heat[S.players[g].tk]=0);
+    Object.values(S.orders).forEach(o=>Object.keys(o).forEach(g=>{if(o[g]>0&&S.players[g])heat[S.players[g].tk]++}));
+    return{
+      room:S.room,phase:S.phase,
+      players:Object.keys(S.players).sort((a,b)=>S.players[a].at-S.players[b].at).map(id=>({name:S.players[id].name,on:!!S.players[id].on})),
+      stocks:stockIds.map(g=>({tk:tkOf(g),tags:S.players[g].tags,pitch:S.players[g].pitch})),
+      rsIdx:S.rsIdx,rsEndsAt:S.rsEndsAt,bookEndsAt:S.bookEndsAt,
+      qa:S.qa.map(x=>({id:x.id,tk:tkOf(x.g),q:x.q,a:x.a})),
+      heat,
+      ordersIn:Object.keys(S.orders).filter(id=>Object.keys(S.orders[id]).length).length
+    };
+  }
+  function meView(pid){
+    const P=S.players[pid];if(!P)return{pid,listed:false,inGame:false};
+    const me={pid,listed:!!P.tk,inGame:S.order.includes(pid),name:P.name,tags:P.tags,pitch:P.pitch,tk:P.tk,_ordersTk:Object.fromEntries(Object.entries(S.orders[pid]||{}).map(([g,v])=>[tkOf(g),v])),
+      myQs:S.qa.filter(x=>x.g===pid).map(x=>({id:x.id,q:x.q,a:x.a}))};
+    if(S.alloc){
+      const shownFill=S.alloc.steps.slice(0,S.allocShown).find(s=>s.type!=='freeze'&&s.b===pid);
+      if(shownFill||S.phase==='reveal'){const g=S.alloc.result.find(r=>r.b===pid);if(g)me.got={tk:tkOf(g.g),tags:S.players[g.g].tags,amt:shownFill&&shownFill.a||0}}
+      if(S.phase==='reveal'){
+        const shown=S.alloc.result.slice(0,S.revealShown);
+        const r1=shown.find(r=>r.b===pid);if(r1)me.from=nm(r1.g);
+        const r2=shown.find(r=>r.g===pid);if(r2)me.gaveTo=nm(r2.b);
+        me.allRevealed=S.revealShown>=S.alloc.result.length;
+      }
+    }
+    return me;
+  }
+  function send(pid){const c=conns.get(pid);if(!c)return;try{c.send({t:'view',now:Date.now(),pub:pubView(),me:meView(pid)})}catch(e){}}
+  function sync(){store.set('tot-host',S);conns.forEach((c,pid)=>send(pid));render()}
+
+  /* ---- phase transitions ---- */
+  function startRoadshow(){const ids=listed();if(ids.length<2)return;S.order=shuffle(ids.slice());S.rsIdx=0;S.rsEndsAt=Date.now()+RS_MS;S.phase='roadshow';sfx.bell();sync()}
+  function nextStock(){S.rsIdx++;if(S.rsIdx>=S.order.length){S.phase='book';S.bookEndsAt=Date.now()+BOOK_MS;sfx.gong()}else{S.rsEndsAt=Date.now()+RS_MS;sfx.bell()}sync()}
+  function closeBook(){S.alloc=allocate();S.allocShown=0;S.phase='alloc';sfx.gong();sync()}
+  function allocNext(){
+    if(S.allocShown<S.alloc.steps.length){S.allocShown++;const st=S.alloc.steps[S.allocShown-1];st.type==='freeze'?sfx.boo():sfx.string();sync()}
+    else{S.phase='reveal';S.revealShown=0;S.auto=false;sfx.gong();sync()}
+  }
+  function revealNext(){if(S.revealShown<S.alloc.result.length){S.revealShown++;sfx.string();sync()}}
+  function resetRoom(){store.del('tot-host');location.href=BASE+(TEST?'?bc=1':'')}
+
+  /* ---- allocation: highest order fills first, one gift each, never your own ---- */
+  function allocate(){
+    const ids=S.order.slice(),all=[];
+    ids.forEach(b=>{const o=S.orders[b]||{};ids.forEach(g=>{if(g!==b&&o[g]>0)all.push({b,g,a:o[g],r:Math.random()})})});
+    all.sort((x,y)=>y.a-x.a||x.r-y.r);
+    const tB=new Set(),tG=new Set(),steps=[];
+    for(const o of all){
+      if(tB.has(o.b)||tG.has(o.g))continue;
+      const remB=ids.filter(x=>!tB.has(x)&&x!==o.b),remG=ids.filter(x=>!tG.has(x)&&x!==o.g);
+      if(remB.length===1&&remB[0]===remG[0]){steps.push({type:'freeze',b:o.b,g:o.g,a:o.a,stuck:remB[0]});continue}
+      const tie=all.some(p=>p!==o&&p.g===o.g&&p.a===o.a&&!tB.has(p.b));
+      tB.add(o.b);tG.add(o.g);
+      steps.push({type:'fill',b:o.b,g:o.g,a:o.a,tie,others:all.filter(p=>p.g===o.g&&p.b!==o.b).map(p=>({b:p.b,a:p.a}))});
+    }
+    const remB=ids.filter(x=>!tB.has(x)),remG=ids.filter(x=>!tG.has(x));
+    const m=matchNoSelf(remB,remG);
+    remB.forEach((b,i)=>steps.push({type:'left',b,g:m[i]}));
+    return{steps,result:steps.filter(s=>s.type!=='freeze').map(s=>({b:s.b,g:s.g}))};
+  }
+  function matchNoSelf(B,G){
+    for(let t=0;t<300;t++){const p=shuffle(G.slice());if(B.every((b,i)=>p[i]!==b))return p}
+    const res=[],used=new Set();(function bt(i){if(i===B.length)return true;for(const g of G){if(used.has(g)||g===B[i])continue;used.add(g);res[i]=g;if(bt(i+1))return true;used.delete(g)}return false})(0);
+    return res.length===B.length?res:G.slice();
+  }
+
+  /* ---- controls ---- */
+  app.addEventListener('click',e=>{
+    const b=e.target.closest('[data-h]');if(!b||b.disabled)return;
+    const a=b.dataset.h;
+    if(a==='start')startRoadshow();
+    else if(a==='next')nextStock();
+    else if(a==='plus'){if(S.phase==='roadshow')S.rsEndsAt+=30000;else if(S.phase==='book')S.bookEndsAt+=30000;sync()}
+    else if(a==='close')closeBook();
+    else if(a==='anext')allocNext();
+    else if(a==='auto'){S.auto=!S.auto;autoT=Date.now();sync()}
+    else if(a==='rnext')revealNext();
+    else if(a==='kick'){const id=b.dataset.id;if(S.phase==='lobby'&&S.players[id]){delete S.players[id];sync()}}
+    else if(a==='new'){if(b.dataset.armed){resetRoom()}else{b.dataset.armed='1';b.textContent='Tap again to end this room';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='New room'}},3000)}}
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.target.matches('input,textarea'))return;
+    if(e.key===' '||e.key==='ArrowRight'){e.preventDefault();
+      if(S.phase==='alloc')allocNext();else if(S.phase==='reveal')revealNext();else if(S.phase==='roadshow')nextStock();}
+  });
+
+  /* ---- timers ---- */
+  let lastSec=-1;
+  setInterval(()=>{
+    const now=Date.now();
+    if(S.phase==='roadshow'){const left=S.rsEndsAt-now;updClock(left);if(left<=0)nextStock()}
+    else if(S.phase==='book'){const left=S.bookEndsAt-now;updClock(left);const s=Math.ceil(left/1000);if(s!==lastSec&&s<=10&&s>0)sfx.tick();lastSec=s;if(left<=0)closeBook()}
+    else if((S.phase==='alloc'||S.phase==='reveal')&&S.auto&&now-autoT>AUTO_MS){autoT=now;S.phase==='alloc'?allocNext():(S.revealShown<S.alloc.result.length?revealNext():(S.auto=false,sync()))}
+  },250);
+  function updClock(left){const el=$('#hclock');if(el){el.textContent=fmtClock(left);el.classList.toggle('urgent',left<10000)}}
+
+  /* ---- rendering ---- */
+  function shell(){
+    if(app._shell)return;app._shell=true;
+    app.innerHTML=`<div class="host">
+      <div class="h-top">
+        <h1 class="logo">Trick<span class="or">or</span>Trade</h1>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <span class="phase" id="hphase"></span>
+          <span class="roomchip">ROOM <b>${esc(room)}</b></span>
+          ${soundToggleHTML()}
+        </div>
+      </div>
+      <div class="tape" id="tape"></div>
+      <div id="hmain" style="flex:1;display:flex;flex-direction:column;gap:18px"></div>
+      <div class="h-bar"><span class="muted" id="netStatus"></span><button class="btn sec" data-h="new" style="font-size:14px;padding:8px 14px">New room</button></div>
+    </div>`;
+  }
+  function render(){
+    shell();
+    const labels={lobby:'Listing day',roadshow:'Roadshow',book:'Book-building',alloc:'Allocation',reveal:'Delisting'};
+    setHTML($('#hphase'),labels[S.phase]||'');
+    const online=[...conns.keys()].filter(id=>S.players[id]).length;
+    setHTML($('#netStatus'),ready?(Object.keys(S.players).length?online+' phone'+(online===1?'':'s')+' connected':'Waiting for phones…'):'Opening the trading floor…');
+    renderTape();
+    const m=$('#hmain');
+    const key=S.phase;
+    if(key!==lastKey){m.innerHTML='';m._h=null;m._built=false;lastKey=key}
+    ({lobby:hLobby,roadshow:hRoadshow,book:hBook,alloc:hAlloc,reveal:hReveal})[S.phase](m);
+  }
+  function renderTape(){
+    const ids=S.order.length?S.order:listed();
+    if(!ids.length){setHTML($('#tape'),'<div class="run"><span class="flat">MARKET OPENS SOON · SCAN TO LIST YOUR GIFT · MARKET OPENS SOON · SCAN TO LIST YOUR GIFT</span><span class="flat">MARKET OPENS SOON · SCAN TO LIST YOUR GIFT · MARKET OPENS SOON · SCAN TO LIST YOUR GIFT</span></div>');return}
+    const heat={};Object.values(S.orders).forEach(o=>Object.keys(o).forEach(g=>{if(o[g]>0)heat[g]=(heat[g]||0)+1}));
+    let one=ids.map(g=>{const h=heat[g]||0;return '<span class="'+(h?'up':'flat')+'">$'+esc(tkOf(g))+' '+(S.phase==='book'||S.phase==='alloc'||S.phase==='reveal'?(h?'▲'+h:'—'):'IPO')+'</span>'}).join('');
+    while(one.length<600&&ids.length)one+=one;
+    setHTML($('#tape'),'<div class="run">'+one+one+'</div>');
+  }
+  function hLobby(m){
+    const ids=Object.keys(S.players).sort((a,b)=>S.players[a].at-S.players[b].at);
+    const nList=listed().length;
+    if(!m._built){
+      m._built=true;
+      m.innerHTML=`<div class="h-main lobby-grid">
+        <div class="card qrbox"><div class="qr" id="qr"></div><div class="muted">Scan to join, or enter the code</div><div class="code">${esc(room)}</div><div class="url">${esc(joinURL)}</div></div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="h-bar"><div style="font-size:26px;font-weight:700">Listed gifts <span class="tk" id="lcount" style="color:var(--candy)"></span></div></div>
+          <div class="souls" id="souls"></div>
+          <button class="btn big" data-h="start" id="startBtn">Ring the opening bell</button>
+          <div class="muted" id="startHint"></div>
+        </div></div>`;
+      const q=$('#qr');
+      if(window.QRCode){try{new QRCode(q,{text:joinURL,width:300,height:300,colorDark:'#120b1a',colorLight:'#f6eddc',correctLevel:QRCode.CorrectLevel.M})}catch(e){q.textContent=joinURL}}
+      else{q.style.display='none'}
+    }
+    m=m.firstElementChild;
+    let h='';
+    ids.forEach(id=>{const p=S.players[id];h+=`<div class="soul ${p.tk?'':'wait'} ${p.on?'':'off'}"><div class="nm">${esc(p.name)}</div><div class="st">${p.tk?'listed ✓':'filling in…'}${p.on?'':' · offline'}</div>
+      <button class="chip" data-h="kick" data-id="${esc(id)}" style="margin-top:8px;font-size:12px">remove</button></div>`});
+    for(let i=ids.length;i<5;i++)h+='<div class="soul empty">empty seat</div>';
+    setHTML($('#souls'),h);
+    setHTML($('#lcount'),nList+'');
+    $('#startBtn').disabled=nList<2;
+    setHTML($('#startHint'),nList<2?'Need at least 2 listed gifts to open the market.':'Everyone in? Ring the bell to start the roadshow. Each gift gets 60 seconds on stage.');
+  }
+  function hRoadshow(m){
+    const g=S.order[S.rsIdx],P=S.players[g],qs=S.qa.filter(x=>x.g===g);
+    if(!m._built){m._built=true;m.innerHTML=`<div class="h-main rs-grid">
+      <div style="display:flex;flex-direction:column;gap:16px"><div class="stage" id="stage"></div>
+        <div class="h-bar"><div class="clock" id="hclock"></div><div class="ctl"><button class="btn sec" data-h="plus">+30s</button><button class="btn" data-h="next" id="nextBtn"></button></div></div></div>
+      <div class="card" style="display:flex;flex-direction:column;gap:12px"><div style="font-size:22px;font-weight:700">Anonymous Q&amp;A</div><div class="muted">Ask from your phone. The issuer answers from theirs. Nobody knows who.</div><div class="feed" id="feed"></div></div></div>`}
+    setHTML($('#stage'),`<div class="num">Stock ${S.rsIdx+1} of ${S.order.length}</div><div class="tk">$${esc(P.tk)}</div><div class="htags">${esc(P.tags.join(' '))}</div>${P.pitch?`<div class="pitch">${esc(P.pitch)}</div>`:''}`);
+    setHTML($('#nextBtn'),S.rsIdx+1>=S.order.length?'Open the order book ▶':'Next stock ▶');
+    setHTML($('#feed'),qs.length?qs.slice().reverse().map(x=>`<div class="qa"><div class="q">Q: ${esc(x.q)}</div><div class="a ${x.a?'':'wait'}">${x.a?'A: '+esc(x.a):'issuer is typing… 👻'}</div></div>`).join(''):'<div class="empty">No questions yet. Phones, start asking.</div>');
+    updClock(S.rsEndsAt-Date.now());
+  }
+  function hBook(m){
+    if(!m._built){m._built=true;m.innerHTML=`<div style="display:flex;flex-direction:column;gap:18px">
+      <div class="h-bar"><div><div style="font-size:30px;font-weight:700">The book is open</div><div class="muted">Spread 100 candy across the gifts you want. Orders are sealed. The highest order fills first.</div></div>
+      <div style="display:flex;gap:14px;align-items:center"><div class="clock" id="hclock"></div><button class="btn sec" data-h="plus">+30s</button><button class="btn" data-h="close">Close the book</button></div></div>
+      <div class="h-main book-grid" id="bk"></div><div class="muted" id="ordersIn" style="font-size:18px"></div></div>`}
+    const heat={};S.order.forEach(g=>heat[g]=0);Object.values(S.orders).forEach(o=>Object.keys(o).forEach(g=>{if(o[g]>0)heat[g]++}));
+    const max=Math.max(1,...Object.values(heat));
+    setHTML($('#bk'),S.order.map(g=>{const h=heat[g];return `<div class="bk ${h===max&&h>1?'hot':''}"><div class="tk">$${esc(tkOf(g))}</div><div class="htags">${esc(S.players[g].tags.join(' '))}</div><div class="flames">${'🔥'.repeat(h)||'<span class="muted" style="font-size:16px">no orders yet</span>'}</div><div class="cnt">${h} order${h===1?'':'s'}</div></div>`}).join(''));
+    const n=Object.keys(S.orders).filter(id=>Object.keys(S.orders[id]).length).length;
+    setHTML($('#ordersIn'),n+' of '+S.order.length+' traders have placed orders.');
+    updClock(S.bookEndsAt-Date.now());
+  }
+  function hAlloc(m){
+    const steps=S.alloc.steps,shown=steps.slice(0,S.allocShown),done=S.allocShown>=steps.length;
+    if(!m._built){m._built=true;m.innerHTML=`<div class="h-main alloc-grid">
+      <div class="card"><svg class="strings" id="strings" viewBox="0 0 1000 600"></svg></div>
+      <div style="display:flex;flex-direction:column;gap:14px"><div id="stepCard"></div>
+        <div class="ctl" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn big" data-h="anext" id="anext"></button><button class="btn sec" data-h="auto" id="autoBtn"></button></div>
+        <div class="muted">Space bar works too.</div></div></div>`}
+    const ids=S.order,n=ids.length,top=60,gap=(600-2*top)/Math.max(1,n-1);
+    const people=ids.slice().sort((a,b)=>S.players[a].at-S.players[b].at);
+    const py={},gy={};people.forEach((id,i)=>py[id]=n===1?300:top+i*gap);ids.forEach((g,i)=>gy[g]=n===1?300:top+i*gap);
+    const filledB=new Set(shown.filter(s=>s.type!=='freeze').map(s=>s.b)),filledG=new Set(shown.filter(s=>s.type!=='freeze').map(s=>s.g));
+    let svg='';
+    shown.forEach((s,i)=>{const y1=py[s.b],y2=gy[s.g],d=`M250 ${y1} C 500 ${y1}, 500 ${y2}, 750 ${y2}`;
+      svg+=s.type==='freeze'?(i===shown.length-1?`<path class="frz" d="${d}"/>`:''):`<path class="str ${i===shown.length-1?'new':''}" d="${d}"/>`});
+    people.forEach(id=>{svg+=`<text x="235" y="${py[id]+8}" text-anchor="end" font-size="26" class="${filledB.has(id)||done?'':'dim'}">${esc(nm(id))}</text><circle cx="250" cy="${py[id]}" r="8" fill="var(--bone)"/>`});
+    ids.forEach(g=>{svg+=`<circle cx="750" cy="${gy[g]}" r="8" fill="var(--pumpkin)"/><text x="768" y="${gy[g]+9}" font-size="26" class="tkt ${filledG.has(g)||done?'':'dim'}">$${esc(tkOf(g))}</text>`});
+    setHTML($('#strings'),svg);
+    const last=shown[shown.length-1];let card='';
+    if(!last)card=`<div class="step-card"><div class="lab">ALLOCATION</div><div class="main">The book is closed.</div><div class="others">Orders fill from the highest bid down. Each trader gets exactly one gift.</div></div>`;
+    else if(last.type==='fill')card=`<div class="step-card fill"><div class="lab">FILL #${shown.filter(s=>s.type!=='freeze').length}${last.tie?' · TIE, the ghost dice decided':''}</div><div class="main">${esc(nm(last.b))} → <span class="tk">$${esc(tkOf(last.g))}</span></div><div class="amt">${last.a} candy</div>${last.others.length?`<div class="others">Outbid: ${last.others.map(o=>esc(nm(o.b))+' '+o.a).join(' · ')}</div>`:''}</div>`;
+    else if(last.type==='freeze')card=`<div class="step-card freeze"><div class="lab">FROZEN BY A GHOST 👻</div><div class="main">${esc(nm(last.b))} → <span class="tk">$${esc(tkOf(last.g))}</span> @ ${last.a}</div><div class="others">If this filled, someone would be left holding their own gift. Order skipped.</div></div>`;
+    else card=`<div class="step-card fill"><div class="lab">UNSOLD STOCK, ASSIGNED</div><div class="main">${esc(nm(last.b))} → <span class="tk">$${esc(tkOf(last.g))}</span></div><div class="others">No order filled for ${esc(nm(last.b))}, so the leftovers find a home.</div></div>`;
+    setHTML($('#stepCard'),card);
+    setHTML($('#anext'),done?'Start the delisting ▶':shown.length?'Next fill ▶':'First fill ▶');
+    setHTML($('#autoBtn'),S.auto?'⏸ Pause auto':'▶ Auto play');
+  }
+  function hReveal(m){
+    const res=S.alloc.result,shown=res.slice(0,S.revealShown),all=S.revealShown>=res.length;
+    if(!m._built){m._built=true;m.innerHTML=`<div class="h-main reveal-grid">
+      <div class="card"><svg class="circle" id="circle" viewBox="0 0 1000 760"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ff3a5c"/></marker></defs><g id="cg"></g></svg></div>
+      <div style="display:flex;flex-direction:column;gap:14px"><div id="drum"></div><div class="ctl" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn big" data-h="rnext" id="rnext"></button><button class="btn sec" data-h="auto" id="autoBtn2"></button></div><div class="ledger" id="ledger"></div></div></div>`}
+    const ids=S.order.slice().sort((a,b)=>S.players[a].at-S.players[b].at),n=ids.length,cx=500,cy=380,R=290,pos={};
+    ids.forEach((id,i)=>{const t=-Math.PI/2+i*2*Math.PI/n;pos[id]={x:cx+R*Math.cos(t),y:cy+R*Math.sin(t)}});
+    const lit=new Set();shown.forEach(r=>{lit.add(r.b);lit.add(r.g)});
+    let g='';
+    shown.forEach((r,i)=>{const a=pos[r.g],b=pos[r.b],mx=(a.x+b.x)/2,my=(a.y+b.y)/2,dx0=b.x-a.x,dy0=b.y-a.y,len=Math.hypot(dx0,dy0)||1;
+      const qx=mx-dy0/len*len*.22,qy=my+dx0/len*len*.22;
+      const ua=Math.hypot(qx-a.x,qy-a.y)||1,sx=a.x+(qx-a.x)/ua*62,sy=a.y+(qy-a.y)/ua*62;
+      const ub=Math.hypot(b.x-qx,b.y-qy)||1,ex=b.x-(b.x-qx)/ub*64,ey=b.y-(b.y-qy)/ub*64;
+      g+=`<path class="arrow ${i===shown.length-1?'new':''}" d="M${sx.toFixed(1)} ${sy.toFixed(1)} Q${qx.toFixed(1)} ${qy.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}" marker-end="url(#ah)"/>`;
+      const tx=(sx+2*qx+ex)/4,ty=(sy+2*qy+ey)/4;g+=`<text class="atk" x="${tx.toFixed(1)}" y="${(ty+7).toFixed(1)}" text-anchor="middle" paint-order="stroke" stroke="#1c1228" stroke-width="6">$${esc(tkOf(r.g))}</text>`});
+    ids.forEach(id=>{const p=pos[id];g+=`<circle class="node ${lit.has(id)?'lit':''}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="56"/><text x="${p.x.toFixed(1)}" y="${(p.y+8).toFixed(1)}" text-anchor="middle" font-size="${nm(id).length>6?18:24}">${esc(nm(id))}</text>`});
+    setHTML($('#cg'),g);
+    const last=shown[shown.length-1];
+    setHTML($('#drum'),last?`<div class="drum"><div class="tk">$${esc(tkOf(last.g))}</div><div class="htags">${esc(S.players[last.g].tags.join(' '))}</div><div class="by">gifted by <b>${esc(nm(last.g))}</b><br>to ${esc(nm(last.b))}</div></div>`
+      :`<div class="drum"><div class="by">Who listed what?<br><span class="muted">Every stock gets delisted and its issuer revealed.</span></div></div>`);
+    setHTML($('#rnext'),all?'That’s a wrap 🎃':shown.length?'Next reveal ▶':'Reveal the first issuer ▶');
+    $('#rnext').disabled=all;
+    setHTML($('#autoBtn2'),S.auto?'⏸ Pause auto':'▶ Auto play');
+    $('#autoBtn2').hidden=all;
+    setHTML($('#ledger'),shown.map(r=>`<div class="row"><div>${esc(nm(r.g))}</div><div class="ar">→</div><div class="to">${esc(nm(r.b))}</div><div class="gift"><span class="tk">$${esc(tkOf(r.g))}</span> <span class="htags">${esc(S.players[r.g].tags.join(' '))}</span></div></div>`).join(''));
+  }
+
+  render();
+}
+
+/* =====================================================================
+   PHONE — the trading terminal
+   ===================================================================== */
+function startPhone(room){
+  const KEY='tot-pid-'+room;
+  let pid=(TEST&&params.get('pid'))||store.get(KEY);if(!pid){pid='p'+uid()+uid();store.set(KEY,pid)}
+  let editing=false,conn=null,V=null,offset=0,online=false,retryT=0,lastKey='',orderDraft=null,orderT=0,askedNotice=false;
+
+  function connect(){
+    Net.join(room,{
+      onOpen(c){conn=c;online=true;c.send({t:'hello',pid});render()},
+      onData(m){if(m&&m.t==='view'){offset=m.now-Date.now();V=m;if(V.pub.phase!=='book')orderDraft=null;render()}},
+      onClose(){conn=null;online=false;render();clearTimeout(retryT);retryT=setTimeout(connect,2000)},
+      onError(e){conn=null;online=false;render();
+        if(e&&e.type==='peer-unavailable')setStatus('Room '+room+' not found yet. Is the big screen open? Retrying…');
+        else if(e&&e.type==='nolib')setStatus('Could not load the connection library. Check your internet.');
+        clearTimeout(retryT);retryT=setTimeout(connect,2500)}
+    });
+  }
+  const send=m=>{if(conn){try{conn.send(Object.assign({pid},m))}catch(e){}}else toast('Reconnecting… try again in a second.')};
+  let statusMsg='';function setStatus(t){statusMsg=t;const el=$('#pstatus');if(el)el.textContent=t}
+  connect();
+
+  app.innerHTML=`<div class="phone">
+    <div class="ph-head"><div class="logo">Trick<span class="or">or</span>Trade</div><span class="pill" id="pill"><span class="dot"></span><span id="pillTxt"></span></span></div>
+    <div id="pbody"></div>
+    <div class="muted" id="pstatus" style="font-size:13px;text-align:center"></div>
+    <div style="text-align:center">${soundToggleHTML()}</div>
+  </div>`;
+
+  /* ---- input handling (delegated) ---- */
+  app.addEventListener('click',e=>{
+    const b=e.target.closest('[data-p]');if(!b||b.disabled)return;const a=b.dataset.p;
+    if(a==='chip'){const t=$('#tagIn');const cur=parseTags(t.value);if(!cur.includes(b.dataset.v)&&cur.length<4)cur.push(b.dataset.v);t.value=cur.join(' ');return}
+    if(a==='edit'){editing=true;render();return}
+    if(a==='quickq'){send({t:'ask',q:b.dataset.v});toast('Asked anonymously 👻');return}
+    if(a==='askfree'){const i=$('#qIn');const q=i.value.trim();if(!q)return;send({t:'ask',q});i.value='';toast('Asked anonymously 👻');return}
+    if(a==='ans'){send({t:'answer',qid:b.dataset.q,a:b.dataset.v});return}
+    if(a==='ansfree'){const i=document.getElementById('a-'+b.dataset.q);const v=i&&i.value.trim();if(v){send({t:'answer',qid:b.dataset.q,a:v})}return}
+    if(a==='amt'){
+      const g=b.dataset.tk,d=+b.dataset.d;orderDraft=orderDraft||Object.assign({},myOrdersByTk());
+      const cur=orderDraft[g]||0,used=Object.values(orderDraft).reduce((s,v)=>s+v,0);
+      let nv=cur+d;
+      nv=Math.max(0,Math.min(nv,cur+(CAPITAL-used)));
+      orderDraft[g]=nv;renderBook();
+      clearTimeout(orderT);orderT=setTimeout(pushOrders,350);return;
+    }
+  });
+  app.addEventListener('submit',e=>{
+    if(e.target.id!=='listForm')return;e.preventDefault();
+    const name=$('#nameIn').value.trim(),tags=parseTags($('#tagIn').value),pitch=$('#pitchIn').value.trim();
+    if(!name){$('#nameIn').focus();return}
+    if(!tags.length){toast('Add at least one hashtag.');$('#tagIn').focus();return}
+    store.set('tot-last-name',name);
+    editing=false;send({t:'list',name,tags,pitch});lastKey='';
+  });
+  app.addEventListener('keydown',e=>{
+    if(e.key!=='Enter')return;
+    if(e.target.id==='qIn'){e.preventDefault();$('[data-p="askfree"]').click()}
+    else if(e.target.id&&e.target.id.startsWith('a-')){e.preventDefault();const b=e.target.parentElement.querySelector('[data-p="ansfree"]');b&&b.click()}
+  });
+
+  function myOrdersByTk(){return (V&&V.me&&V.me._ordersTk)||{}}
+  function pushOrders(){
+    if(!orderDraft)return;
+    send({t:'orders',ordersTk:orderDraft});
+  }
+
+  /* ---- render ---- */
+  function render(){
+    $('#pill').classList.toggle('off',!online);
+    setHTML($('#pillTxt'),online?(V&&V.me&&V.me.listed?esc(V.me.name)+' · $'+esc(V.me.tk):'Room '+esc(room)):'Connecting…');
+    if(online)setStatus('');else if(!statusMsg)setStatus('Connecting to room '+room+'…');
+    const body=$('#pbody');
+    if(!V){setHTML(body,`<div class="big-msg"><div class="em">Boo.</div><p>Connecting to room ${esc(room)}…</p></div>`);return}
+    const ph=V.pub.phase,me=V.me;
+    let key=ph;
+    if(ph==='lobby')key+=me.listed&&!editing?':listed':':form';
+    if(ph!=='lobby'&&!me.inGame)key='spectator';
+    if(ph==='roadshow')key+=':'+V.pub.rsIdx;
+    if(key!==lastKey){body.innerHTML='';body._h=null;lastKey=key;buildSkeleton(body,key)}
+    update(body,key);
+  }
+  function buildSkeleton(body,key){
+    const ph=V.pub.phase,me=V.me;
+    if(key==='spectator'){body.innerHTML=`<div class="big-msg"><div class="em">Too late!</div><p>This market already opened. Watch the big screen and join the next round.</p></div>`;return}
+    if(key==='lobby:form'){
+      const p=me.listed?me:{};const last=store.get('tot-last-name')||'';
+      body.innerHTML=`<form class="card" id="listForm" autocomplete="off">
+        <div style="font-size:22px;font-weight:700;margin-bottom:4px">List your gift</div>
+        <div class="muted" style="margin-bottom:16px">Nobody will see that it's yours until the very end.</div>
+        <div class="field"><label for="nameIn">Your name</label><input type="text" id="nameIn" maxlength="14" value="${esc(p.name||last)}" placeholder="e.g. Pumpkin Pete"></div>
+        <div class="field"><label for="tagIn">Gift hashtags (up to 4)</label><input type="text" id="tagIn" maxlength="60" value="${esc((p.tags||[]).join(' '))}" placeholder="#會發光 #吃的">
+          <div class="chips">${TAG_SUGGEST.map(t=>`<button type="button" class="chip" data-p="chip" data-v="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+          <div class="hint">Hint, don't spoil.</div></div>
+        <div class="field"><label for="pitchIn">Investment pitch (one line)</label><textarea id="pitchIn" maxlength="90" placeholder="This will make your winter way better.">${esc(p.pitch||'')}</textarea></div>
+        <button class="btn wide big" type="submit">List it 📈</button></form>`;
+      return;
+    }
+    if(key==='lobby:listed'){body.innerHTML=`<div class="stockcard" id="mystock"></div><div class="card"><div style="font-weight:700;margin-bottom:8px">In the room</div><div id="who" class="muted"></div></div>
+      <button class="btn sec wide" data-p="edit">Edit my listing</button><div class="muted" style="text-align:center">Waiting for the opening bell on the big screen…</div>`;return}
+    if(ph==='roadshow'){body.innerHTML=`<div class="stockcard" id="rsCard"></div><div id="rsAct"></div><div id="myQs"></div><div><div style="font-weight:700;margin-bottom:8px">Q&amp;A on this stock</div><div class="qlist" id="rsFeed"></div></div>`;return}
+    if(ph==='book'){body.innerHTML=`<div class="budget"><div><div class="muted" style="font-size:13px">Candy left</div><div class="left" id="left"></div></div><div style="text-align:right"><div class="muted" style="font-size:13px">Book closes in</div><div class="timer" id="btimer"></div></div></div>
+      <div class="muted">Spread 100 candy across the gifts you want. Orders are sealed and autosave. Highest order in the whole room fills first, and you get exactly one gift.</div>
+      <div id="orows"></div><div id="myQs"></div>`;return}
+    if(ph==='alloc'){body.innerHTML=`<div class="big-msg"><div class="em">Eyes up!</div><p>Allocation is happening on the big screen.</p></div><div id="mine"></div>`;return}
+    if(ph==='reveal'){body.innerHTML=`<div id="mine"></div>`;return}
+  }
+  function update(body,key){
+    const P=V.pub,me=V.me;
+    if(key==='lobby:listed'){
+      setHTML($('#mystock'),`<div class="muted" style="font-size:14px">Your stock is listed</div><div class="tk">$${esc(me.tk)}</div><div class="htags">${esc(me.tags.join(' '))}</div>${me.pitch?`<div class="pitch">“${esc(me.pitch)}”</div>`:''}`);
+      setHTML($('#who'),P.players.map(p=>esc(p.name)).join(' · '));
+    }
+    if(key.startsWith('roadshow')){
+      const s=P.stocks[P.rsIdx],mine=s&&s.tk===me.tk;
+      setHTML($('#rsCard'),`<div style="display:flex;justify-content:space-between;align-items:center"><span class="muted" style="font-size:14px">On stage · ${P.rsIdx+1}/${P.stocks.length}</span><span class="timer" id="rtimer"></span></div><div class="tk" style="margin-top:6px">$${esc(s.tk)}</div><div class="htags">${esc(s.tags.join(' '))}</div>${s.pitch?`<div class="pitch">“${esc(s.pitch)}”</div>`:''}`);
+      const act=$('#rsAct');
+      if(mine){setHTML(act,`<div class="card" style="border-color:var(--pumpkin)"><div style="font-weight:700">This is your stock 🤫</div><div class="muted">Answer the questions below. Keep a straight face.</div></div>`)}
+      else if(!act._built){act._built=true;act.innerHTML=`<div class="card"><div style="font-weight:700;margin-bottom:6px">Ask anonymously</div>
+        <div class="chips">${QUICK_Q.map(q=>`<button class="chip" data-p="quickq" data-v="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+        <div class="inrow"><input type="text" id="qIn" maxlength="120" placeholder="Your own question…"><button class="btn" data-p="askfree">Ask</button></div></div>`}
+      const qs=P.qa.filter(x=>x.tk===s.tk);
+      setHTML($('#rsFeed'),qs.length?qs.slice().reverse().map(x=>`<div class="qa"><div class="q">Q: ${esc(x.q)}</div><div class="a ${x.a?'':'wait'}">${x.a?'A: '+esc(x.a):'waiting for the issuer…'}</div></div>`).join(''):'<div class="muted">No questions yet.</div>');
+    }
+    if($('#myQs'))renderMyQs();
+    if(key==='book')renderBook();
+    if(key==='alloc'){setHTML($('#mine'),me.got?`<div class="card result"><div class="muted">Your order filled</div><div class="tk">$${esc(me.got.tk)}</div><div class="htags">${esc(me.got.tags.join(' '))}</div>${me.got.amt?`<div class="muted" style="margin-top:6px">${me.got.amt} candy</div>`:''}</div>`:'<div class="muted" style="text-align:center">Your fill hasn’t come up yet…</div>')}
+    if(key==='reveal'){
+      setHTML($('#mine'),`<div class="card result"><div class="muted">You got</div><div class="tk">$${esc(me.got?me.got.tk:'???')}</div><div class="htags">${esc(me.got?me.got.tags.join(' '):'')}</div>
+        <div class="from">${me.from?`gifted by <b>${esc(me.from)}</b>`:'from… <span class="muted">watch the big screen</span>'}</div></div>
+        <div class="card" style="text-align:center"><div class="muted">Your $${esc(me.tk)} went to</div><div style="font-size:24px;font-weight:700">${me.gaveTo?esc(me.gaveTo):'<span class="muted">not revealed yet</span>'}</div></div>
+        ${me.allRevealed?'<div class="big-msg"><div class="em">Happy Halloween</div><p>Go open your gift.</p></div>':''}`);
+    }
+  }
+  function renderMyQs(){
+    const el=$('#myQs');if(!el)return;const me=V.me;
+    const open=me.myQs.filter(q=>!q.a);
+    const ph=V.pub.phase,onStage=ph==='roadshow'&&V.pub.stocks[V.pub.rsIdx].tk===me.tk;
+    if(!open.length&&!onStage){setHTML(el,'');return}
+    // keep text inputs alive: build per-question blocks once, update the rest
+    const ids=open.map(q=>q.id).join(',');
+    if(el._ids!==ids){
+      const keep={};el.querySelectorAll('input[id^="a-"]').forEach(i=>keep[i.id]=i.value);
+      el.innerHTML=`<div class="card" style="border-color:var(--pumpkin)"><div style="font-weight:700;margin-bottom:6px">Questions about your $${esc(me.tk)} (${open.length})</div>${open.length?'':'<div class="muted">No unanswered questions.</div>'}<div class="qlist">${open.map(q=>`<div class="qa"><div class="q">Q: ${esc(q.q)}</div>
+        <div class="ansbtns">${QUICK_A.map(a=>`<button class="chip" data-p="ans" data-q="${esc(q.id)}" data-v="${esc(a)}">${esc(a)}</button>`).join('')}</div>
+        <div class="inrow"><input type="text" id="a-${esc(q.id)}" maxlength="120" placeholder="Or type an answer…" value="${esc(keep['a-'+q.id]||'')}"><button class="btn" data-p="ansfree" data-q="${esc(q.id)}">Send</button></div></div>`).join('')}</div></div>`;
+      el._ids=ids;el._h=null;
+    }
+  }
+  function renderBook(){
+    const P=V.pub,me=V.me,el=$('#orows');if(!el)return;
+    const server=me._ordersTk||{};const d=orderDraft||server;
+    const used=Object.values(d).reduce((s,v)=>s+v,0),left=CAPITAL-used;
+    const L=$('#left');L.textContent=left;L.classList.toggle('zero',left===0);
+    setHTML(el,P.stocks.filter(s=>s.tk!==me.tk).map(s=>{const v=d[s.tk]||0;return `<div class="orow"><div style="min-width:0"><div class="tk">$${esc(s.tk)}</div><div class="sub">${esc(s.tags.join(' '))}${s.pitch?' · '+esc(s.pitch):''}</div><div class="sub">${'🔥'.repeat(P.heat[s.tk]||0)}</div></div>
+      <div class="stepper"><button data-p="amt" data-tk="${esc(s.tk)}" data-d="-10" ${v<=0?'disabled':''}>−10</button><button data-p="amt" data-tk="${esc(s.tk)}" data-d="-1" ${v<=0?'disabled':''}>−1</button><span class="amt ${v?'has':''}">${v}</span><button data-p="amt" data-tk="${esc(s.tk)}" data-d="1" ${left<=0?'disabled':''}>+1</button><button data-p="amt" data-tk="${esc(s.tk)}" data-d="10" ${left<=0?'disabled':''}>+10</button></div></div>`}).join(''));
+  }
+  setInterval(()=>{
+    if(!V)return;const now=Date.now()+offset,P=V.pub;
+    const r=$('#rtimer');if(r&&P.phase==='roadshow')r.textContent=fmtClock(P.rsEndsAt-now);
+    const b=$('#btimer');if(b&&P.phase==='book')b.textContent=fmtClock(P.bookEndsAt-now);
+  },250);
+  render();
+}
+})();
+</script>
+</body>
+</html>
